@@ -30,7 +30,7 @@ int main() {
        perror("Thread creation failed");
        exit(1);
     }
-
+/*
     if (pthread_create(&thread_status, NULL, psc_status_thread, NULL) != 0) {
        perror("Thread creation failed");
        exit(1);
@@ -40,7 +40,7 @@ int main() {
        perror("Thread creation failed");
        exit(1);
     }
-    
+ */   
      
     while (1) 
        sleep(1);  
