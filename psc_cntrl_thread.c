@@ -34,17 +34,34 @@ void soft_trig(volatile unsigned int *fpgabase, int msgVal) {
 }
 
 void set_atten(volatile unsigned int *fpgabase, int whichatten, int msgVal) {
-   
+  
+    	
     if (whichatten == RFATTEN)	{
        printf("Setting RF attenuator to %d dB\n",msgVal);
-       fpgabase[DSA_REG] = 0x80000000 || msgVal;
+       fpgabase[RF_DSA_REG] = msgVal;
     }
     else { //pilot tone attenuator {
        printf("Setting PT attenuator to %d dB\n",msgVal);
-       fpgabase[DSA_REG] = 0x40000000 || msgVal;
+       fpgabase[PT_DSA_REG] = msgVal;
     }
 
 }
+
+void set_geo_dly(volatile unsigned int *fpgabase, int msgVal) {
+    // the Geo delay is the same as tbt_gate delay, set them both for now
+    fpgabase[FINE_TRIG_DLY_REG] = msgVal; 
+    fpgabase[TBT_GATEDLY_REG] = msgVal;
+}
+
+void set_coarse_dly(volatile unsigned int *fpgabase, int msgVal) {
+    fpgabase[COARSE_TRIG_DLY_REG] = msgVal; 
+}
+
+
+void set_eventno(volatile unsigned int *fpgabase, int msgVal) {
+    fpgabase[EVR_DMA_TRIGNUM_REG] = msgVal; 
+}
+
 
 
 void set_kxky(volatile unsigned int *fpgabase, int axis, int msgVal) {
@@ -191,10 +208,10 @@ reconnect:
 	MsgData = ntohl(*bufptr);
         printf("Data : %d\n",MsgData);
          
-	printf("Input0: %d %d %d %d\n",buffer[0],buffer[1],buffer[2],buffer[3]);
-       	printf("Input1: %d %d %d %d\n",buffer[4],buffer[5],buffer[6],buffer[7]);
-       	printf("Input2: %d %d %d %d\n",buffer[8],buffer[9],buffer[10],buffer[11]);
-	printf("Input3: %d %d %d %d\n",buffer[12],buffer[13],buffer[14],buffer[15]);
+	//printf("Input0: %d %d %d %d\n",buffer[0],buffer[1],buffer[2],buffer[3]);
+       	//printf("Input1: %d %d %d %d\n",buffer[4],buffer[5],buffer[6],buffer[7]);
+       	//printf("Input2: %d %d %d %d\n",buffer[8],buffer[9],buffer[10],buffer[11]);
+	//printf("Input3: %d %d %d %d\n",buffer[12],buffer[13],buffer[14],buffer[15]);
         tempbuf[0] = buffer[15];
 	tempbuf[1] = buffer[14];
 	tempbuf[2] = buffer[13];
@@ -256,13 +273,23 @@ reconnect:
                     set_gain(fpgabase,CHD,MsgDataflt); 
 		    break;
 
-		case TBT_GATE_DLY_MSG1:
-		    printf("TbT Gate Delay Message:   Value=%d\n",MsgData);
-                    break;
+		case FINE_TRIG_DLY_MSG1:
+		    printf("Fine Trig Delay Message:   Value=%d\n",MsgData);
+                    set_geo_dly(fpgabase,MsgData); 
+		    break;
 
-		case TBT_GATE_WIDTH_MSG1:
+		case COARSE_TRIG_DLY_MSG1:
+		    printf("Coarse Trig Delay Message:   Value=%d\n",MsgData);
+		    set_coarse_dly(fpgabase,MsgData);
+		    break;
+
+		case EVENT_NO_MSG1:
 		    printf("TbT Gate Width Message:   Value=%d\n",MsgData);
-                    break;
+                    set_eventno(fpgabase,MsgData); 
+		    break;
+
+
+
 
                 default:
 		    printf("Msg not supported yet...\n");

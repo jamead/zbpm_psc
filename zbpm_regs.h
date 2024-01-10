@@ -6,7 +6,9 @@
 #define LIVEBUS_BASEADDR 0x43C20000
 
 //IO Bus Registers
-#define DSA_REG 3
+#define RF_DSA_REG 3
+#define PT_DSA_REG 6
+#define INT_TRIG_ENB 7  
 #define TRIG_EVRINT_SEL 9
 
 #define TEMP_DFE0_REG 28
@@ -23,6 +25,9 @@
 #define CHD_GAIN_REG 41
 #define TBT_GATEDLY_REG 44
 #define TBT_GATEWID_REG 45
+
+#define COARSE_TRIG_DLY_REG 77
+#define FINE_TRIG_DLY_REG 78
 #define EVR_DMA_TRIGNUM_REG 79
 #define SOFT_DMA_TRIG_REG 80
 

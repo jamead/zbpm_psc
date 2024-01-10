@@ -78,6 +78,12 @@ void ReadFpgaRegs(volatile unsigned int *fpgabase, char *msgid30, char *msgid31)
     //Slow Control Data - PSC Message ID 30
     ReadReg(fpgabase,KX_REG,&msgid30[POS_KX_MSG30]);
     ReadReg(fpgabase,KY_REG,&msgid30[POS_KY_MSG30]);
+    
+    ReadReg(fpgabase,RF_DSA_REG,&msgid30[RF_ATTEN_MSG30]);
+    ReadReg(fpgabase,PT_DSA_REG,&msgid30[PT_ATTEN_MSG30]);
+
+
+
 
     ReadReg(fpgabase,CHA_GAIN_REG,&msgid30[CHA_GAIN_MSG30]);
     ReadReg(fpgabase,CHB_GAIN_REG,&msgid30[CHB_GAIN_MSG30]);
@@ -85,7 +91,10 @@ void ReadFpgaRegs(volatile unsigned int *fpgabase, char *msgid30, char *msgid31)
     ReadReg(fpgabase,CHD_GAIN_REG,&msgid30[CHD_GAIN_MSG30]);
 
     ReadReg(fpgabase,FPGA_VER_REG,&msgid30[FPGA_VER_MSG30]);
-     
+
+    ReadReg(fpgabase,FINE_TRIG_DLY_REG,&msgid30[TBT_GATE_DLY_MSG30]);
+    ReadReg(fpgabase,COARSE_TRIG_DLY_REG,&msgid30[COARSE_TRIG_DLY_MSG30]);
+ 
 
     ReadBrdTemp(fpgabase,TEMP_DFE0_REG,&msgid30[TEMP_DFESENSE0_MSG30]);
     ReadBrdTemp(fpgabase,TEMP_DFE1_REG,&msgid30[TEMP_DFESENSE1_MSG30]);
@@ -93,6 +102,8 @@ void ReadFpgaRegs(volatile unsigned int *fpgabase, char *msgid30, char *msgid31)
     ReadBrdTemp(fpgabase,TEMP_DFE3_REG,&msgid30[TEMP_DFESENSE3_MSG30]);
     ReadBrdTemp(fpgabase,TEMP_AFE0_REG,&msgid30[TEMP_AFESENSE0_MSG30]);
     ReadBrdTemp(fpgabase,TEMP_AFE1_REG,&msgid30[TEMP_AFESENSE1_MSG30]);
+
+
 
     //10Hz Slow Data - PSC Message ID 31
     ReadReg(fpgabase, EVR_TS_NS_REG, &msgid31[TS_NS_MSG31]);
@@ -130,7 +141,7 @@ void *psc_status_thread(void *arg)
     int *msgid31_bufptr;
 
     struct sockaddr_in serv_addr, cli_addr;
-    int  n, loop=0;
+    int i, n, loop=0;
     int sa_cnt, sa_cnt_prev;
     int fd;
     volatile unsigned int *fpgabase;
@@ -224,7 +235,7 @@ reconnect:
     sa_cnt_prev = sa_cnt = 0;
     while (1) {
         //printf("In main loop...\n");
- 	usleep(1000);
+ 	usleep(100000);
 	do {
 	   sa_cnt = fpgabase[SA_TRIGNUM_REG];
 	   //printf("SA CNT: %d\n",sa_cnt);
@@ -236,7 +247,7 @@ reconnect:
         ReadFpgaRegs(fpgabase,&msgid30_buf[MSGHDRLEN],&msgid31_buf[MSGHDRLEN]);
 	//printf("%8d:  Reading FPGA Registers...\n",sa_cnt);
         //for (i=0;i<60;i++)
-	//    printf("%d:  %d\n",i*4-8,bufptr[i]);
+	//    printf("%d:  %d\n",i*4-8,msgid30_buf[i]);
 
         /*for (i=0;i<232;i=i+4) {
 	    printf("%d:  %d  %d  %d  %d\n",i,buffer[i],buffer[i+1],buffer[i+2],buffer[i+3]);
@@ -245,12 +256,12 @@ reconnect:
         */
     
 
-       /*print msg31 packet
-       for (i=0;i<44;i=i+4) {
-	    printf("%d:  %d  %d  %d  %d\n",i,msgid31_buf[i],msgid31_buf[i+1],msgid31_buf[i+2],msgid31_buf[i+3]);
+       //print msg30 packet
+       //for (i=0;i<228;i=i+4) {
+//	    printf("%d:  %d  %d  %d  %d\n",i,msgid30_buf[i],msgid30_buf[i+1],msgid30_buf[i+2],msgid30_buf[i+3]);
 	    //printf("%d:  %d  %d  %d  %d\n",i,bufferntoh[i],bufferntoh[i+1],bufferntoh[i+2],bufferntoh[i+3]);
-        }
-        */
+ //       }
+        
 
 
 	Host2NetworkConvStatus(msgid30_buf,msgid30_bufntoh);	

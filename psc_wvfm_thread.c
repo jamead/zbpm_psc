@@ -82,7 +82,7 @@ void ReadADCWvfm(volatile unsigned int *fpgabase, char *msg) {
        wordsRead++;
        }
 
-    printf("ADC FIFO Read Complete, words read = %d\n",wordsRead);
+    //printf("ADC FIFO Read Complete, words read = %d\n",wordsRead);
     //printf("Remaining ADC Word Count : %d\n",fpgabase[ADCFIFO_CNT_REG]);
     //printf("Results...\n");
     samp_cnt = 0;
