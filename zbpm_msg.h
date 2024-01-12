@@ -12,7 +12,7 @@
 
 //This message is for ADC waveform
 #define MSGID51 51 
-#define MSGID51LEN 100000   //in bytes
+#define MSGID51LEN 80000   //in bytes
 #define MSGHDRLEN 8
 
 

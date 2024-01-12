@@ -46,6 +46,8 @@ void Host2NetworkConvWvfm(char *inbuf, char *outbuf) {
 
 
 
+
+
 void ReadADCWvfm(volatile unsigned int *fpgabase, char *msg) {
 
     int i;
@@ -69,7 +71,7 @@ void ReadADCWvfm(volatile unsigned int *fpgabase, char *msg) {
     while (fpgabase[ADCFIFO_CNT_REG] == 0)
          usleep(10000);
 
-    //printf("Running...\n");
+    printf("Running...\n");
     usleep(500000);
     wordCnt = fpgabase[ADCFIFO_CNT_REG];
     wordsRead = 0;
@@ -82,7 +84,7 @@ void ReadADCWvfm(volatile unsigned int *fpgabase, char *msg) {
        wordsRead++;
        }
 
-    //printf("ADC FIFO Read Complete, words read = %d\n",wordsRead);
+    printf("ADC FIFO Read Complete, words read = %d\n",wordsRead);
     //printf("Remaining ADC Word Count : %d\n",fpgabase[ADCFIFO_CNT_REG]);
     //printf("Results...\n");
     samp_cnt = 0;
@@ -119,10 +121,10 @@ void *psc_wvfm_thread(void *arg)
     int *msgid51_bufptr;
 
     struct sockaddr_in serv_addr, cli_addr;
-    int  n, loop=0;
+    int  i, n, loop=0;
     int fd;
     volatile unsigned int *fpgabase;
-
+    int prevtrignum, newtrignum;
 
     signal(SIGPIPE, SIG_IGN);
     printf("Starting Tx Waveform Server... \n");
@@ -201,25 +203,32 @@ reconnect:
     *++msgid51_bufptr = htonl(MSGID51LEN);  //body length
 	
 
+    prevtrignum = 0;
+    newtrignum = 0;
 
     while (1) {
-		usleep(1000000);
-     
-	    ReadADCWvfm(fpgabase,&msgid51_buf[MSGHDRLEN]);
-	    //printf("%8d:  Reading ADC Waveform...\n",loop);
+        //wait for a trigger
+        while (newtrignum == prevtrignum) { 
+	    newtrignum = fpgabase[EVR_DMA_TRIGNUM_REG];
+            usleep(10000);	
+	}	    
+        prevtrignum = newtrignum; 
+
+	ReadADCWvfm(fpgabase,&msgid51_buf[MSGHDRLEN]);
+	//printf("%8d:  Reading ADC Waveform...\n",loop);
         //for (i=0;i<60;i++)
-	    //    printf("%d:  %d\n",i*4-8,bufptr[i]);
+	//    printf("%d:  %d\n",i*4-8,bufptr[i]);
 
 
         //print msg51 packet
         //for (i=0;i<44;i=i+4) 
-	    //    printf("%d:  %d  %d  %d  %d\n",i,msgid51_buf[i],msgid51_buf[i+1],
-	    //					                 msgid51_buf[i+2],msgid51_buf[i+3]);
+	//        printf("%d:  %d  %d  %d  %d\n",i,msgid51_buf[i],msgid51_buf[i+1],
+	//    					   msgid51_buf[i+2],msgid51_buf[i+3]);
         
 
 
-	    Host2NetworkConvWvfm(msgid51_buf,msgid51_bufntoh);	
-	    n = write(newsockfd,msgid51_bufntoh,MSGID51LEN+MSGHDRLEN);
+	Host2NetworkConvWvfm(msgid51_buf,msgid51_bufntoh);	
+	n = write(newsockfd,msgid51_bufntoh,MSGID51LEN+MSGHDRLEN);
         if (n < 0) {
             printf("Waveform socket: ERROR writing to socket\n");
             close(newsockfd);
@@ -229,9 +238,9 @@ reconnect:
 
 
 
-	    loop++;
+	loop++;
 
-        }
+    }
 
    return NULL; 
 
