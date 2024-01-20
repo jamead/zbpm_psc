@@ -3,7 +3,7 @@ NAME = zbpm_psc
 
 CFLAGS = -g -Wall
 DEPS = zbpm_regs.h zbpm_msgs.h zbpm_defs.h
-OBJS = zbpm_main.o psc_cntrl_thread.o psc_status_thread.o psc_wvfm_thread.o
+OBJS = zbpm_main.o ad9510.o psc_cntrl_thread.o psc_status_thread.o psc_wvfm_thread.o
 LIBS = -lpthread
 
 %.o: %.c $(DEPS)
