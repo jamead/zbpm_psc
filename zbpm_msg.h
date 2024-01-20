@@ -13,17 +13,26 @@
 //This message is for ADC waveform
 #define MSGID51 51 
 #define MSGID51LEN 80000   //in bytes
+
+//This message is for system info
+#define MSGID32 32 
+#define MSGID32LEN 36  //in bytes
+
+//All messages have an 8 byte header
 #define MSGHDRLEN 8
 
 
 
 #define SOFT_TRIG_MSG1 0
 #define PILOT_TONE_ENB_MSG1 8
+#define DMA_TRIG_SRC_MSG1 52
 #define PILOT_TONE_SPI_MSG1 104
 #define RF_ATTEN_MSG1 132
 #define PT_ATTEN_MSG1 136
 #define KX_MSG1 144
 #define KY_MSG1 148
+#define BBA_XOFF_MSG1 152
+#define BBA_YOFF_MSG1 156
 #define CHA_GAIN_MSG1 160
 #define CHB_GAIN_MSG1 164
 #define CHC_GAIN_MSG1 168
@@ -35,12 +44,16 @@
 
 
 #define TRIG_STRIG_MSG30 0
+#define PLL_LOCKED_MSG30 60
+#define TRIG_DMA_CNT_MSG30 76 
 #define RF_ATTEN_MSG30 132
 #define PT_ATTEN_MSG30 136
 #define POS_KX_MSG30 144
 #define POS_KY_MSG30 148
 #define KX_MSG30 144
 #define KY_MSG30 148
+#define BBA_XOFF_MSG30 152
+#define BBA_YOFF_MSG30 156
 #define CHA_GAIN_MSG30 160
 #define CHB_GAIN_MSG30 164
 #define CHC_GAIN_MSG30 168
@@ -54,6 +67,10 @@
 #define TEMP_DFESENSE3_MSG30 220
 #define TEMP_AFESENSE0_MSG30 224
 #define TEMP_AFESENSE1_MSG30 228
+#define TS_LAT_NS_MSG30 264
+#define TS_LAT_MSG30 268
+
+
 #define COARSE_TRIG_DLY_MSG30 272
 
 
@@ -69,5 +86,4 @@
 #define POS_Y_MSG31 40
 #define AMPL_SUM_MSG31 44
 #define TRIG_EVENTNO_MSG31 84
-#define CNT_TRIG_MSG31 96
-
+#define TRIG_SA_CNT_MSG31 96

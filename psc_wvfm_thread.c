@@ -46,8 +46,6 @@ void Host2NetworkConvWvfm(char *inbuf, char *outbuf) {
 
 
 
-
-
 void ReadADCWvfm(volatile unsigned int *fpgabase, char *msg) {
 
     int i;
@@ -123,8 +121,8 @@ void *psc_wvfm_thread(void *arg)
     struct sockaddr_in serv_addr, cli_addr;
     int  i, n, loop=0;
     int fd;
-    volatile unsigned int *fpgabase;
-    int prevtrignum, newtrignum;
+    volatile unsigned int *fpgaiobase, *fpgalivebase;
+    int prevtrignum, newtrignum, test;
 
     signal(SIGPIPE, SIG_IGN);
     printf("Starting Tx Waveform Server... \n");
@@ -169,9 +167,11 @@ void *psc_wvfm_thread(void *arg)
     }
     //printf("Opened /dev/mem\r\n");
 
-    fpgabase = (unsigned int *) mmap(0,getpagesize(),PROT_READ|PROT_WRITE,MAP_SHARED,fd,LIVEBUS_BASEADDR);
+    fpgalivebase = (unsigned int *) mmap(0,getpagesize(),PROT_READ|PROT_WRITE,MAP_SHARED,fd,LIVEBUS_BASEADDR);
+    fpgaiobase   = (unsigned int *) mmap(0,getpagesize(),PROT_READ|PROT_WRITE,MAP_SHARED,fd,IOBUS_BASEADDR);
 
-    if (fpgabase == NULL) {
+
+    if (fpgaiobase == NULL || fpgalivebase == NULL) {
        printf("Can't mmap\n");
        exit(1);
     }
@@ -202,20 +202,29 @@ reconnect:
     msgid51_buf[3] = (short int) MSGID51;
     *++msgid51_bufptr = htonl(MSGID51LEN);  //body length
 	
-
+    /*bzero(msgid32_buf,sizeof(msgid32_buf));
+    msgid32_bufptr = (int *)msgid32_buf; 
+    msgid32_buf[0] = 'P';
+    msgid32_buf[1] = 'S';
+    msgid32_buf[2] = 0;
+    msgid32_buf[3] = (short int) MSGID32;
+    *++msgid32_bufptr = htonl(MSGID32LEN);  //body length
+    */	
     prevtrignum = 0;
     newtrignum = 0;
-
+    
     while (1) {
         //wait for a trigger
         while (newtrignum == prevtrignum) { 
-	    newtrignum = fpgabase[EVR_DMA_TRIGNUM_REG];
-            usleep(10000);	
+	    newtrignum = fpgaiobase[DMA_TRIGCNT_REG];
+            test = fpgaiobase[FPGA_VER_REG]; 
+   	    printf("Trig Num: %d    %d\n",newtrignum,test);     
+	    usleep(10000);	
 	}	    
         prevtrignum = newtrignum; 
 
-	ReadADCWvfm(fpgabase,&msgid51_buf[MSGHDRLEN]);
-	//printf("%8d:  Reading ADC Waveform...\n",loop);
+	ReadADCWvfm(fpgalivebase,&msgid51_buf[MSGHDRLEN]);
+	printf("%8d:  Reading ADC Waveform...\n",loop);
         //for (i=0;i<60;i++)
 	//    printf("%d:  %d\n",i*4-8,bufptr[i]);
 
@@ -227,14 +236,17 @@ reconnect:
         
 
 
+	//write out msg51
 	Host2NetworkConvWvfm(msgid51_buf,msgid51_bufntoh);	
 	n = write(newsockfd,msgid51_bufntoh,MSGID51LEN+MSGHDRLEN);
         if (n < 0) {
-            printf("Waveform socket: ERROR writing to socket\n");
+            printf("Waveform socket: ERROR writing MSG 51 - ADC Waveform\n");
             close(newsockfd);
             goto reconnect;
             //exit(1);
         }
+
+
 
 
 

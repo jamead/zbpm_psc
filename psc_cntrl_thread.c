@@ -38,11 +38,11 @@ void set_atten(volatile unsigned int *fpgabase, int whichatten, int msgVal) {
     	
     if (whichatten == RFATTEN)	{
        printf("Setting RF attenuator to %d dB\n",msgVal);
-       fpgabase[RF_DSA_REG] = msgVal;
+       fpgabase[RF_DSA_REG] = msgVal*4;
     }
     else { //pilot tone attenuator {
        printf("Setting PT attenuator to %d dB\n",msgVal);
-       fpgabase[PT_DSA_REG] = msgVal;
+       fpgabase[PT_DSA_REG] = msgVal*4;
     }
 
 }
@@ -62,6 +62,20 @@ void set_eventno(volatile unsigned int *fpgabase, int msgVal) {
     fpgabase[EVR_DMA_TRIGNUM_REG] = msgVal; 
 }
 
+void set_trigsrc(volatile unsigned int *fpgabase, int msgVal) {
+    if (msgVal == 0) {
+        printf("Setting Trigger Source to EVR\n");
+        fpgabase[TRIG_EVRINT_SEL_REG] = msgVal; 
+    }
+    else if (msgVal == 1) {
+	printf("Setting Trigger Source to INT (soft)\n");
+        fpgabase[TRIG_EVRINT_SEL_REG] = msgVal;
+    } 
+    else 
+        printf("Invalid Trigger Source\n");
+
+}
+
 
 
 void set_kxky(volatile unsigned int *fpgabase, int axis, int msgVal) {
@@ -70,11 +84,26 @@ void set_kxky(volatile unsigned int *fpgabase, int axis, int msgVal) {
        printf("Setting Kx to %d nm\n",msgVal);
        fpgabase[KX_REG] = msgVal;
     }
-    else { //pilot tone attenuator {
+    else {
        printf("Setting Ky to %d nm\n",msgVal);
        fpgabase[KY_REG] = msgVal;
     }
 }
+
+
+void set_bbaoffset(volatile unsigned int *fpgabase, int axis, int msgVal) {
+   
+    if (axis == HOR)	{
+       printf("Setting BBA X to %d nm\n",msgVal);
+       fpgabase[BBA_XOFF_REG] = msgVal;
+    }
+    else { 
+       printf("Setting BBA Y to %d nm\n",msgVal);
+       fpgabase[BBA_YOFF_REG] = msgVal;
+    }
+}
+
+
 
 
 void set_gain(volatile unsigned int *fpgabase, int channel, float msgValflt) {
@@ -225,6 +254,14 @@ reconnect:
                     soft_trig(fpgabase,MsgData);
 		    break;
 
+		case DMA_TRIG_SRC_MSG1:
+		    printf("Set Trigger Source Message:   Value=%d\n",MsgData);
+                    set_trigsrc(fpgabase,MsgData);
+		    break;
+
+
+
+
 		case PILOT_TONE_ENB_MSG1:
 		    printf("Pilot Tone Enb Message:   Value=%d\n",MsgData);
                     break;
@@ -252,6 +289,16 @@ reconnect:
 		    printf("Ky Message:   Value=%d\n",MsgData);
                     set_kxky(fpgabase,VERT,MsgData); 
 		    break;
+
+                case BBA_XOFF_MSG1:
+		    printf("BBA X Offset:   Value=%d\n",MsgData);
+	 	    set_bbaoffset(fpgabase,HOR,MsgData);
+                    break;
+
+                case BBA_YOFF_MSG1:
+		    printf("BBA Y Offset:   Value=%d\n",MsgData);
+		    set_bbaoffset(fpgabase,VERT,MsgData);
+                    break; 
 
 		case CHA_GAIN_MSG1:
 		    printf("ChA Gain Message:   Value=%f\n",MsgDataflt);

@@ -19,8 +19,10 @@ int main() {
    
     pthread_t thread_cntrl, thread_status, thread_wvfm;
 
-    printf("Starting...\n");
-
+    printf("Starting zBPM...\n");
+   
+    printf("Programming AD9510 PLL...\n");
+    prog_ad9510();
 
 
 

@@ -13,6 +13,7 @@
 #define CHD 3
 
 
+void prog_ad9510();
 
 void *psc_cntrl_thread(void *);
 void *psc_status_thread(void *);
