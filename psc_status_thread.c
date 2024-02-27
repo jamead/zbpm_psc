@@ -16,6 +16,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/sysinfo.h>
 #include <netinet/in.h>
 #include <signal.h>
 
@@ -45,30 +46,99 @@ void Host2NetworkConvStatus(char *inbuf, char *outbuf) {
     }	
 }
 
-void ReadSysInfo(char *msg) {
+int get_machineloc(volatile unsigned int *fpgabase) {
+    
+    int machine_loc;
 
-    char *msgptr;
-    char hello[] = "Hello zBPM how are you today not too bad abcdefghijklmnopqrstuvwwyz";
-    FILE *fp;
-    char line[200];
-
-    // Open a pipe to the command
-    /*fp = popen("/usr/bin/uptime", "r");
-    if (fp == NULL) {
-        perror("Error executing command");
-        //return 1;
+    machine_loc = fpgabase[MACHINE_LOC_REG];
+    switch (machine_loc) {
+        case 0:
+	    return STRAIGHT;
+	    break;
+	case 3:
+	case 5:
+	    return RING;
+	    break;
     }
-    */
-
-    // Read fp line 
-   // fgets(line, sizeof(line), fp);
-
-    //strncpy(msg,line,sizeof(line));
-    strncpy(msg,hello,10); //sizeof(hello));
+}
 
 
-    //printf("%d:  %s\n",sizeof(line), line);
-     //printf("%d:  %s\n",sizeof(hello), hello);
+
+
+void ReadSFPStats(volatile unsigned int *fpgabase, char *msg) {
+   
+    int i, rawval; 
+    float temp;
+
+    //read SFP Temperatures
+    fpgabase[SFP_I2C_CNTRL_REG] = 0x160;	
+    usleep(5000);
+    for (i=0;i<=5;i++) { 
+       rawval = fpgabase[SFP0_RDBK+i];
+       if (rawval != 0xFFFF) 
+          temp = rawval / 256.0;
+       else
+          temp = 0;    
+       memcpy(msg,&temp,sizeof(int));
+       msg = msg + 4;
+       //printf("SFP%d Temp = %f\n",i,temp);
+       }
+
+    //read SFP Voltages 
+    fpgabase[SFP_I2C_CNTRL_REG] = 0x162;	
+    usleep(5000);
+    for (i=0;i<=5;i++) { 
+       rawval = fpgabase[SFP0_RDBK+i];
+       if (rawval != 0xFFFF) 
+          temp = rawval / 10000.0;
+       else
+          temp = 0;    
+       memcpy(msg,&temp,sizeof(int));
+       msg = msg + 4;
+       //printf("SFP%d Voltage = %f\n",i,temp);
+       }
+
+    //read SFP Laser Bias Currnt (mA) 
+    fpgabase[SFP_I2C_CNTRL_REG] = 0x164;	
+    usleep(5000);
+    for (i=0;i<=5;i++) { 
+       rawval = fpgabase[SFP0_RDBK+i];
+       if (rawval != 0xFFFF) 
+          temp = rawval / 2000.0;
+       else
+          temp = 0;    
+       memcpy(msg,&temp,sizeof(int));
+       msg = msg + 4;
+       //printf("SFP%d TxBias = %f\n",i,temp);
+       }
+
+    //read SFP Transmit Power (mA) 
+    fpgabase[SFP_I2C_CNTRL_REG] = 0x166;	
+    usleep(5000);
+    for (i=0;i<=5;i++) { 
+       rawval = fpgabase[SFP0_RDBK+i];
+       if (rawval != 0xFFFF) 
+          temp = rawval / 10000.0;
+       else
+          temp = 0;    
+       memcpy(msg,&temp,sizeof(int));
+       msg = msg + 4;
+       //printf("SFP%d TxPower = %f\n",i,temp);
+       }
+
+    //read SFP Receive Power (mA) 
+    fpgabase[SFP_I2C_CNTRL_REG] = 0x168;	
+    usleep(5000);
+    for (i=0;i<=5;i++) { 
+       rawval = fpgabase[SFP0_RDBK+i];
+       if (rawval != 0xFFFF) 
+          temp = rawval / 10000.0;
+       else
+          temp = 0;    
+       memcpy(msg,&temp,sizeof(int));
+       msg = msg + 4;
+       //printf("SFP%d RxPower = %f\n",i,temp);
+       }
 
 
 
@@ -116,8 +186,65 @@ void ReadReg(volatile unsigned int *fpgabase, int regaddr, char *msg) {
 }  
 
 
+void GetSysUptime(char *msg) {
+    struct sysinfo info;
+    int uptime;
 
-void Read1HzRegs(volatile unsigned int *fpgabase, char *msg) {
+    sysinfo(&info);
+    uptime = (int) info.uptime;
+    printf("System Uptime : %d\n",uptime);
+    //uptime = 25262728;
+    memcpy(msg,&uptime,sizeof(int));
+}
+
+
+void GetFPGADieTemp(char *msg) {
+
+   FILE *fp; 
+   char resp[50]; 
+   float offset, raw, scale, temp; 
+
+   fp = popen("cat /sys/bus/platform/drivers/xadc/f8007100.adc/iio\\:device0/in_temp0_offset", "r");
+   sscanf(fgets(resp, sizeof(resp), fp),"%f",&offset);
+   pclose(fp);
+   fp = popen("cat /sys/bus/platform/drivers/xadc/f8007100.adc/iio\\:device0/in_temp0_raw", "r");
+   sscanf(fgets(resp, sizeof(resp), fp),"%f",&raw);
+   pclose(fp);
+   fp = popen("cat /sys/bus/platform/drivers/xadc/f8007100.adc/iio\\:device0/in_temp0_scale", "r");
+   sscanf(fgets(resp, sizeof(resp), fp),"%f",&scale);
+   pclose(fp);
+   temp = scale*(raw + offset)/1000.0;
+   printf("FPGA Die Temp = %f\n",temp);
+
+   memcpy(msg,&temp,sizeof(int));
+
+}
+
+
+
+void ReadSysInfo(volatile unsigned int *fpgabase, char *msg) {
+
+    ReadReg(fpgabase,FPGA_VER_REG,&msg[FPGA_VER_MSG32]);
+    ReadBrdTemp(fpgabase,TEMP_DFE0_REG,&msg[TEMP_DFESENSE0_MSG32]);
+    ReadBrdTemp(fpgabase,TEMP_DFE1_REG,&msg[TEMP_DFESENSE1_MSG32]);
+    ReadBrdTemp(fpgabase,TEMP_DFE2_REG,&msg[TEMP_DFESENSE2_MSG32]);
+    ReadBrdTemp(fpgabase,TEMP_DFE3_REG,&msg[TEMP_DFESENSE3_MSG32]);
+    ReadBrdTemp(fpgabase,TEMP_AFE0_REG,&msg[TEMP_AFESENSE0_MSG32]);
+    ReadBrdTemp(fpgabase,TEMP_AFE1_REG,&msg[TEMP_AFESENSE1_MSG32]);
+
+    ReadSFPStats(fpgabase,&msg[SFP_TEMP_MSG32]);
+    GetSysUptime(&msg[SYS_UPTIME_MSG32]);
+    GetPwrManagement(&msg[PWR_MON_MSG32]);
+    GetFPGADieTemp(&msg[FPGA_DIETEMP_MSG32]);
+   
+}
+
+
+
+
+
+
+void ReadGenRegs(volatile unsigned int *fpgabase, char *msg) {
 
     //Slow Control Data - PSC Message ID 30
     ReadReg(fpgabase,PLL_LOCKED_REG,&msg[PLL_LOCKED_MSG30]);
@@ -129,41 +256,41 @@ void Read1HzRegs(volatile unsigned int *fpgabase, char *msg) {
     ReadReg(fpgabase,BBA_YOFF_REG,&msg[BBA_YOFF_MSG30]);
  
     ReadAtten(fpgabase,RF_DSA_REG,&msg[RF_ATTEN_MSG30]);
-    ReadAtten(fpgabase,RF_DSA_REG,&msg[RF_ATTEN_MSG30]);
+    ReadAtten(fpgabase,PT_DSA_REG,&msg[PT_ATTEN_MSG30]);
+
+    ReadReg(fpgabase,PT_RFENB_REG,&msg[PT_RFENB_MSG30]);
 
     ReadReg(fpgabase,CHA_GAIN_REG,&msg[CHA_GAIN_MSG30]);
     ReadReg(fpgabase,CHB_GAIN_REG,&msg[CHB_GAIN_MSG30]);
     ReadReg(fpgabase,CHC_GAIN_REG,&msg[CHC_GAIN_MSG30]);
     ReadReg(fpgabase,CHD_GAIN_REG,&msg[CHD_GAIN_MSG30]);
-
-    ReadReg(fpgabase,FPGA_VER_REG,&msg[FPGA_VER_MSG30]);
-
     ReadReg(fpgabase,FINE_TRIG_DLY_REG,&msg[TBT_GATE_DLY_MSG30]);
     ReadReg(fpgabase,COARSE_TRIG_DLY_REG,&msg[COARSE_TRIG_DLY_MSG30]);
 
-    //should be updated at 10Hz?
     ReadReg(fpgabase,DMA_TRIGCNT_REG,&msg[TRIG_DMA_CNT_MSG30]);
 
-    ReadReg(fpgabase, EVR_TS_NS_LAT_REG, &msg[TS_LAT_NS_MSG30]);
-    ReadReg(fpgabase, EVR_TS_S_LAT_REG, &msg[TS_LAT_MSG30]);
- 
-    ReadBrdTemp(fpgabase,TEMP_DFE0_REG,&msg[TEMP_DFESENSE0_MSG30]);
-    ReadBrdTemp(fpgabase,TEMP_DFE1_REG,&msg[TEMP_DFESENSE1_MSG30]);
-    ReadBrdTemp(fpgabase,TEMP_DFE2_REG,&msg[TEMP_DFESENSE2_MSG30]);
-    ReadBrdTemp(fpgabase,TEMP_DFE3_REG,&msg[TEMP_DFESENSE3_MSG30]);
-    ReadBrdTemp(fpgabase,TEMP_AFE0_REG,&msg[TEMP_AFESENSE0_MSG30]);
-    ReadBrdTemp(fpgabase,TEMP_AFE1_REG,&msg[TEMP_AFESENSE1_MSG30]);
+    ReadReg(fpgabase,EVR_DMA_TRIGNUM_REG,&msg[TRIG_EVENTNO_MSG30]);
+
+    ReadReg(fpgabase, EVR_TS_NS_LAT_REG, &msg[TS_NS_LAT_MSG30]);
+    ReadReg(fpgabase, EVR_TS_S_LAT_REG, &msg[TS_S_LAT_MSG30]);
+    ReadReg(fpgabase, EVR_TS_NS_REG, &msg[TS_NS_MSG30]);
+    ReadReg(fpgabase, EVR_TS_S_REG, &msg[TS_S_MSG30]);
+
+    ReadReg(fpgabase, SA_TRIGNUM_REG, &msg[TRIG_SA_CNT_MSG30]);
+
+    ReadReg(fpgabase, TRIGTOBEAM_THRESH_REG, &msg[TRIGTOBEAM_THRESH_MSG30]);
+    ReadReg(fpgabase, TRIGTOBEAM_DLY_REG, &msg[TRIGTOBEAM_DLY_MSG30]);
+
+
+
+
 
 }
 
 
-void Read10HzRegs(volatile unsigned int *fpgabase, char *msg) {
+void ReadPosRegs(volatile unsigned int *fpgabase, char *msg) {
 
 
-    //10Hz Slow Data - PSC Message ID 31
-    ReadReg(fpgabase, EVR_TS_NS_REG, &msg[TS_NS_MSG31]);
-    ReadReg(fpgabase, EVR_TS_S_REG, &msg[TS_MSG31]);
-   
     ReadReg(fpgabase, SA_CHA_REG, &msg[AMPL_ASA_MSG31]);
     ReadReg(fpgabase, SA_CHB_REG, &msg[AMPL_BSA_MSG31]);
     ReadReg(fpgabase, SA_CHC_REG, &msg[AMPL_CSA_MSG31]);
@@ -171,9 +298,6 @@ void Read10HzRegs(volatile unsigned int *fpgabase, char *msg) {
     ReadReg(fpgabase, SA_XPOS_REG, &msg[POS_X_MSG31]);
     ReadReg(fpgabase, SA_YPOS_REG, &msg[POS_Y_MSG31]);
     ReadReg(fpgabase, SA_SUM_REG, &msg[AMPL_SUM_MSG31]);
- 
-    ReadReg(fpgabase, EVR_DMA_TRIGNUM_REG, &msg[TRIG_EVENTNO_MSG31]);
-    ReadReg(fpgabase, SA_TRIGNUM_REG, &msg[TRIG_SA_CNT_MSG31]);
 
 }
 
@@ -192,15 +316,14 @@ void *psc_status_thread(void *arg)
     char msgid31_buf[1024];
     char msgid31_bufntoh[1024];
     int *msgid31_bufptr;
-    char msgid32_buf[MSGID32LEN];
-    char msgid32_bufntoh[MSGID32LEN];
+    char msgid32_buf[1024];
+    char msgid32_bufntoh[1024];
     int *msgid32_bufptr;
-
-
-
+    
     struct sockaddr_in serv_addr, cli_addr;
-    int i, n, loop=0;
-    int sa_cnt, sa_cnt_prev;
+    int i, n, loop=0, loc;
+    int sa_cnt, sa_cnt_prev, trig_cnt, trig_cnt_prev;
+    int update_posdata=0;
     int fd;
     volatile unsigned int *fpgabase;
 
@@ -272,7 +395,7 @@ reconnect:
     /* If connection is established then start communicating */
     printf("10Hz socket: Connected Accepted...\n");
 
-    //initialize the 1Hz status registers
+    //initialize the 10z status registers
     bzero(msgid30_buf,sizeof(msgid30_buf));
     msgid30_bufptr = (int *)msgid30_buf; 
     msgid30_buf[0] = 'P';
@@ -281,7 +404,7 @@ reconnect:
     msgid30_buf[3] = (short int) MSGID30;
     *++msgid30_bufptr = htonl(MSGID30LEN);  //body length
    
-    //initialize the 10Hz status registers
+    //initialize the Postion Val status registers
     bzero(msgid31_buf,sizeof(msgid31_buf));
     msgid31_bufptr = (int *)msgid31_buf; 
     msgid31_buf[0] = 'P';
@@ -303,9 +426,12 @@ reconnect:
 
 
     sa_cnt_prev = sa_cnt = 0;
+    trig_cnt_prev = trig_cnt = 0;
+    
     while (1) {
-        //printf("In main loop...\n");
- 	usleep(100000);
+        printf("In main loop...\n");
+ 	usleep(100);
+        	
 	do {
 	   sa_cnt = fpgabase[SA_TRIGNUM_REG];
 	   //printf("SA CNT: %d\n",sa_cnt);
@@ -313,51 +439,68 @@ reconnect:
 	}
         while (sa_cnt_prev == sa_cnt);
         sa_cnt_prev = sa_cnt;
-
-
-        //Read the 10Hz FPGA registers 	
-        Read10HzRegs(fpgabase,&msgid31_buf[MSGHDRLEN]);
-        /*for (i=0;i<232;i=i+4) {
-	    printf("%d:  %d  %d  %d  %d\n",i,buffer[i],buffer[i+1],buffer[i+2],buffer[i+3]);
-	    printf("%d:  %d  %d  %d  %d\n",i,bufferntoh[i],bufferntoh[i+1],bufferntoh[i+2],bufferntoh[i+3]);
-        }
-        */
-     
-       //write 10Hz msg31 packet
-        Host2NetworkConvStatus(msgid31_buf,msgid31_bufntoh);	
-	n = write(newsockfd,msgid31_bufntoh,MSGID31LEN+MSGHDRLEN);
-        if (n < 0) {
-            printf("Status socket: ERROR writing MSG 31 - 10Hz Info\n");
+        
+	//if straight section, update SA data on trigger only
+	//otherwise update at 10Hz.
+	loc = get_machineloc(fpgabase);
+        //printf("Loc = %d\n",loc);
+	if (loc == STRAIGHT) {
+	  trig_cnt = fpgabase[DMA_TRIGCNT_REG];
+ 	  if (trig_cnt != trig_cnt_prev) {
+            update_posdata = 1;
+	    trig_cnt_prev = trig_cnt;
+	  }
+	  else 
+	    update_posdata = 0;
+        } 
+	else
+	    update_posdata = 1;
+        
+        //printf("Update Posdata = %d\n",update_posdata);
+	if (update_posdata == 1) {
+          //Read the 10Hz FPGA registers 	
+          ReadPosRegs(fpgabase,&msgid31_buf[MSGHDRLEN]);
+    
+          //write 10Hz msg31 packet
+          Host2NetworkConvStatus(msgid31_buf,msgid31_bufntoh);	
+	  n = write(newsockfd,msgid31_bufntoh,MSGID31LEN+MSGHDRLEN);
+          if (n < 0) {
+            printf("Status socket: ERROR writing MSG 31 - Pos Info\n");
             close(newsockfd);
             goto reconnect;
+          }
+
+        }
+
+        ReadGenRegs(fpgabase,&msgid30_buf[MSGHDRLEN]);
+        //printf("Reading Gen Registers\n");
+        //write 1Hz msg30 packet
+	Host2NetworkConvStatus(msgid30_buf,msgid30_bufntoh);	
+	n = write(newsockfd,msgid30_bufntoh,MSGID30LEN+MSGHDRLEN);
+        if (n < 0) {
+           printf("Status socket: ERROR writing MSG 30 - 1Hz Info\n");
+           close(newsockfd);
+           goto reconnect;
         }
 
 
-
-       if ((loop % 10) == 0)  {
-           Read1HzRegs(fpgabase,&msgid30_buf[MSGHDRLEN]);
-
-           //write 1Hz msg30 packet
-	   Host2NetworkConvStatus(msgid30_buf,msgid30_bufntoh);	
-	   n = write(newsockfd,msgid30_bufntoh,MSGID30LEN+MSGHDRLEN);
-           if (n < 0) {
-              printf("Status socket: ERROR writing MSG 30 - 1Hz Info\n");
-              close(newsockfd);
-              goto reconnect;
-           }
-
-           ReadSysInfo(&msgid32_buf[MSGHDRLEN]);
-           n = write(newsockfd,msgid32_buf,MSGID32LEN+MSGHDRLEN);
-           if (n < 0) {
-              printf("Status socket: ERROR writing MSG 32 - System Info\n");
-              close(newsockfd);
-              goto reconnect;
-           }
-
-       }
+	if ((loop % 10) == 0) {
+          //printf("Reading Sys Info\n");
+          ReadSysInfo(fpgabase,&msgid32_buf[MSGHDRLEN]);
+	  Host2NetworkConvStatus(msgid32_buf,msgid32_bufntoh);	
+	  //for(i=0;i<160;i=i+4) 
+          //    printf("%d: %d  %d  %d  %d\n",i-8,msgid32_buf[i], msgid32_buf[i+1], 
+          //		                msgid32_buf[i+2], msgid32_buf[i+3]);
+          n = write(newsockfd,msgid32_bufntoh,MSGID32LEN+MSGHDRLEN);
+          if (n < 0) {
+            printf("Status socket: ERROR writing MSG 32 - System Info\n");
+            close(newsockfd);
+            goto reconnect;
+          }
+        }
 
 
-       loop++;
+     loop++;
 
     } 
 

@@ -8,10 +8,12 @@
 //IO Bus Registers
 #define PLL_LOCKED_REG 0
 #define RF_DSA_REG 3
+#define PT_SPI_REG 4
+#define PT_RFENB_REG 5
 #define PT_DSA_REG 6
 #define INT_TRIG_ENB_REG 7  
 #define TRIG_EVRINT_SEL_REG 9
-
+#define MACHINE_LOC_REG 15
 #define TEMP_DFE0_REG 28
 #define TEMP_DFE1_REG 29
 #define TEMP_DFE2_REG 30 
@@ -28,6 +30,9 @@
 #define BBA_YOFF_REG 43
 #define TBT_GATEDLY_REG 44
 #define TBT_GATEWID_REG 45
+
+#define TRIGTOBEAM_DLY_REG 72
+#define TRIGTOBEAM_THRESH_REG 73
 
 #define COARSE_TRIG_DLY_REG 77
 #define FINE_TRIG_DLY_REG 78
@@ -51,8 +56,26 @@
 #define SA_YPOS_REG 115
 #define SA_SUM_REG 117
 
+#define SFP_I2C_CNTRL_REG 120
+#define SFP0_RDBK 121
+#define SFP1_RDBK 122
+#define SFP2_RDBK 123
+#define SFP3_RDBK 124
+#define SFP4_RDBK 125
+#define SFP5_RDBK 126
+
+
+
+
+
+
 
 //Live Bus Registers
+
+#define TBTFIFO_DATA_REG 8 
+#define TBTFIFO_CNT_REG 9 
+#define TBTFIFO_RST_REG 10 
+#define TBTFIFO_STREAMENB_REG 11
 #define ADCFIFO_DATA_REG 16
 #define ADCFIFO_CNT_REG 17
 #define ADCFIFO_RST_REG 18

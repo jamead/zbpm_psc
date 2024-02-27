@@ -196,5 +196,6 @@ void prog_ad9510(void)
    fpgabase[2] = 0x5a01;
    usleep(5000);
 
+   close(fd);
 
 }

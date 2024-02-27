@@ -28,13 +28,10 @@
 
 
 void soft_trig(volatile unsigned int *fpgabase, int msgVal) {
-    
     fpgabase[SOFT_DMA_TRIG_REG] = msgVal;
-
 }
 
 void set_atten(volatile unsigned int *fpgabase, int whichatten, int msgVal) {
-  
     	
     if (whichatten == RFATTEN)	{
        printf("Setting RF attenuator to %d dB\n",msgVal);
@@ -53,9 +50,124 @@ void set_geo_dly(volatile unsigned int *fpgabase, int msgVal) {
     fpgabase[TBT_GATEDLY_REG] = msgVal;
 }
 
+
 void set_coarse_dly(volatile unsigned int *fpgabase, int msgVal) {
     fpgabase[COARSE_TRIG_DLY_REG] = msgVal; 
 }
+
+
+void prog_lmx2541(volatile unsigned int *fpgabase, int msgVal) {
+
+   printf("Programming LMX2451...\n");
+    //register R7 : Resets all registers
+   fpgabase[PT_SPI_REG] = 0x00000017;
+   //fpgabase[PT_RFENB_REG] = 0x00000001;
+   //fpgabase[PT_RFENB_REG] = 0x00000000;
+   usleep(1000);
+
+   // R13 
+   fpgabase[PT_SPI_REG] = 0x0000008d;
+   //fpgabase[5] = 0x00000001;
+   //fpgabase[5] = 0x00000000;
+   usleep(1000);
+
+   // R12 : external VCO
+   fpgabase[PT_SPI_REG] = 0x0000001c;
+   //fpgabase[5] = 0x00000001;
+   //fpgabase[5] = 0x00000000;
+   usleep(1000);
+
+   // R9  : program as shown
+   fpgabase[PT_SPI_REG] = 0x28001409;
+   //fpgabase[5] = 0x00000001;
+   //fpgabase[5] = 0x00000000;
+   usleep(1000);
+
+   // R8 : 
+   fpgabase[PT_SPI_REG] = 0x0111ce58;
+   //fpgabase[5] = 0x00000001;
+   //fpgabase[5] = 0x00000000;
+   usleep(1000);
+
+   // R6
+   fpgabase[PT_SPI_REG] = 0x001f3336;
+   //fpgabase[5] = 0x00000001;
+   //fpgabase[5] = 0x00000000;
+   usleep(1000);
+
+   // R5
+   fpgabase[PT_SPI_REG] = 0xA0000005;
+   //fpgabase[5] = 0x00000001;
+   //fpgabase[5] = 0x00000000;
+   usleep(1000);
+
+   // R4
+   fpgabase[PT_SPI_REG] = 0x88084754;
+   //fpgabase[5] = 0x00000001;
+   //fpgabase[5] = 0x00000000;
+   usleep(1000);
+
+   // R3
+   fpgabase[PT_SPI_REG] = 0x00387f03;
+   //fpgabase[5] = 0x00000001;
+   //fpgabase[5] = 0x00000000;
+   usleep(1000);
+
+   // R2
+   fpgabase[PT_SPI_REG] = 0x04000002;
+   //fpgabase[3] = 0x40000000;
+   //fpgabase[3] = 0x00000000;
+   usleep(1000);
+
+   // R1
+   fpgabase[PT_SPI_REG] = 0x000009b1;
+   //fpgabase[3] = 0x40000000;
+   //fpgabase[3] = 0x00000000;
+   usleep(1000);
+
+   // R0
+   fpgabase[PT_SPI_REG] = 0x0001a4f0;
+   //fpgabase[3] = 0x40000000;
+   //fpgabase[3] = 0x00000000;
+   usleep(1000);
+   printf("Finished programming LMX2451\n"); 
+}
+
+
+
+
+void set_pilottone_rfenb(volatile unsigned int *fpgabase, int msgVal) {
+    fpgabase[PT_RFENB_REG] = msgVal; 
+}
+
+
+void set_trigtobeam_thresh(volatile unsigned int *fpgabase, int msgVal) {
+    fpgabase[TRIGTOBEAM_THRESH_REG] = msgVal; 
+}
+
+
+
+
+void set_machineloc(volatile unsigned int *fpgabase, int msgVal) {
+// 0,1,2,4 = single pass mode
+// 3 = Booster 
+// 5 = Storage Ring	
+    switch (msgVal) {
+        case 0:
+        case 1:
+        case 2:
+        case 4: 
+            fpgabase[MACHINE_LOC_REG] = 0;
+            break;	    
+	case 3:   
+	    fpgabase[MACHINE_LOC_REG] = 3;
+	    break; 
+	case 5:
+            fpgabase[MACHINE_LOC_REG] = 5;
+	    break;
+    }
+}
+
 
 
 void set_eventno(volatile unsigned int *fpgabase, int msgVal) {
@@ -259,16 +371,15 @@ reconnect:
                     set_trigsrc(fpgabase,MsgData);
 		    break;
 
-
-
-
 		case PILOT_TONE_ENB_MSG1:
 		    printf("Pilot Tone Enb Message:   Value=%d\n",MsgData);
-                    break;
+                    set_pilottone_rfenb(fpgabase,MsgData);
+		    break;
 
 		case PILOT_TONE_SPI_MSG1:
 		    printf("Pilot Tone SPI Message:   Value=%d\n",MsgData);
-                    break;
+                    prog_lmx2541(fpgabase,MsgData); 
+		    break;
 
 		case RF_ATTEN_MSG1:
 		    printf("RF Attenuator Message:   Value=%d\n",MsgData);
@@ -330,9 +441,22 @@ reconnect:
 		    set_coarse_dly(fpgabase,MsgData);
 		    break;
 
+		case TRIGTOBEAM_THRESH_MSG1:
+		    printf("Trigger to Beam Threshold Message:   Value=%d\n",MsgData);
+		    set_trigtobeam_thresh(fpgabase,MsgData);
+		    break;
+
+
+
+
 		case EVENT_NO_MSG1:
 		    printf("TbT Gate Width Message:   Value=%d\n",MsgData);
                     set_eventno(fpgabase,MsgData); 
+		    break;
+
+		case MACHINE_SEL_MSG1:
+		    printf("Machine Location Message:   Value=%d\n",MsgData);
+                    set_machineloc(fpgabase,MsgData); 
 		    break;
 
 

@@ -23,14 +23,13 @@ int main() {
    
     printf("Programming AD9510 PLL...\n");
     prog_ad9510();
-
+    sleep(1);
 
 
     if (pthread_create(&thread_cntrl, NULL, psc_cntrl_thread, NULL) != 0) {
        perror("Thread creation failed");
        exit(1);
     }
-
 
     if (pthread_create(&thread_status, NULL, psc_status_thread, NULL) != 0) {
        perror("Thread creation failed");
