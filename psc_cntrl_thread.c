@@ -59,76 +59,52 @@ void set_coarse_dly(volatile unsigned int *fpgabase, int msgVal) {
 void prog_lmx2541(volatile unsigned int *fpgabase, int msgVal) {
 
    printf("Programming LMX2451...\n");
-    //register R7 : Resets all registers
+   //register R7 : Resets all registers
    fpgabase[PT_SPI_REG] = 0x00000017;
-   //fpgabase[PT_RFENB_REG] = 0x00000001;
-   //fpgabase[PT_RFENB_REG] = 0x00000000;
    usleep(1000);
 
    // R13 
    fpgabase[PT_SPI_REG] = 0x0000008d;
-   //fpgabase[5] = 0x00000001;
-   //fpgabase[5] = 0x00000000;
    usleep(1000);
 
    // R12 : external VCO
    fpgabase[PT_SPI_REG] = 0x0000001c;
-   //fpgabase[5] = 0x00000001;
-   //fpgabase[5] = 0x00000000;
    usleep(1000);
 
    // R9  : program as shown
    fpgabase[PT_SPI_REG] = 0x28001409;
-   //fpgabase[5] = 0x00000001;
-   //fpgabase[5] = 0x00000000;
    usleep(1000);
 
    // R8 : 
    fpgabase[PT_SPI_REG] = 0x0111ce58;
-   //fpgabase[5] = 0x00000001;
-   //fpgabase[5] = 0x00000000;
    usleep(1000);
 
    // R6
    fpgabase[PT_SPI_REG] = 0x001f3336;
-   //fpgabase[5] = 0x00000001;
-   //fpgabase[5] = 0x00000000;
    usleep(1000);
 
    // R5
    fpgabase[PT_SPI_REG] = 0xA0000005;
-   //fpgabase[5] = 0x00000001;
-   //fpgabase[5] = 0x00000000;
    usleep(1000);
 
    // R4
    fpgabase[PT_SPI_REG] = 0x88084754;
-   //fpgabase[5] = 0x00000001;
-   //fpgabase[5] = 0x00000000;
    usleep(1000);
 
    // R3
    fpgabase[PT_SPI_REG] = 0x00387f03;
-   //fpgabase[5] = 0x00000001;
-   //fpgabase[5] = 0x00000000;
    usleep(1000);
 
    // R2
    fpgabase[PT_SPI_REG] = 0x04000002;
-   //fpgabase[3] = 0x40000000;
-   //fpgabase[3] = 0x00000000;
    usleep(1000);
 
    // R1
    fpgabase[PT_SPI_REG] = 0x000009b1;
-   //fpgabase[3] = 0x40000000;
-   //fpgabase[3] = 0x00000000;
    usleep(1000);
 
    // R0
    fpgabase[PT_SPI_REG] = 0x0001a4f0;
-   //fpgabase[3] = 0x40000000;
-   //fpgabase[3] = 0x00000000;
    usleep(1000);
    printf("Finished programming LMX2451\n"); 
 }
@@ -137,8 +113,18 @@ void prog_lmx2541(volatile unsigned int *fpgabase, int msgVal) {
 
 
 void set_pilottone_rfenb(volatile unsigned int *fpgabase, int msgVal) {
-    fpgabase[PT_RFENB_REG] = msgVal; 
-}
+
+   if (msgVal == 0) 
+       // disable PT 
+       fpgabase[PT_SPI_REG] = 0x00000017;
+   else
+       // program LMK chip 
+       prog_lmx2541(fpgabase,MsgData); 
+	
+   fpgabase[PT_RFENB_REG] = msgVal; 
+ 	    
+   
+   }
 
 
 void set_trigtobeam_thresh(volatile unsigned int *fpgabase, int msgVal) {
@@ -377,8 +363,8 @@ reconnect:
 		    break;
 
 		case PILOT_TONE_SPI_MSG1:
-		    printf("Pilot Tone SPI Message:   Value=%d\n",MsgData);
-                    prog_lmx2541(fpgabase,MsgData); 
+		    printf("Pilot Tone SPI Message  Deprecated:   Value=%d\n",MsgData);
+                    //prog_lmx2541(fpgabase,MsgData); 
 		    break;
 
 		case RF_ATTEN_MSG1:
