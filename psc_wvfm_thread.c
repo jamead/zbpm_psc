@@ -67,7 +67,7 @@ void ReadTbTWvfm(volatile unsigned int *fpgabase, char *msg) {
     printf("\tTrigger Timestamp: %d   %d\n",ts_s,ts_ns);
 
     // Get TbT Waveform
-    for (i=0;i<1024*7;i++)
+    for (i=0;i<1024*7;i++) 
 	*msgptr++ = fpgabase[TBTFIFO_DATA_REG];
         
     //printf("TbT FIFO Read Complete...\n");
