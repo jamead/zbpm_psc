@@ -7,6 +7,7 @@
 
 //IO Bus Registers
 #define PLL_LOCKED_REG 0
+#define FP_LEDS_REG 1
 #define RF_DSA_REG 3
 #define PT_SPI_REG 4
 #define PT_RFENB_REG 5
