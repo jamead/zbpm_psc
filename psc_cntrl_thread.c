@@ -119,7 +119,7 @@ void set_pilottone_rfenb(volatile unsigned int *fpgabase, int msgVal) {
        fpgabase[PT_SPI_REG] = 0x00000017;
    else
        // program LMK chip 
-       prog_lmx2541(fpgabase,MsgData); 
+       prog_lmx2541(fpgabase,msgVal); 
 	
    fpgabase[PT_RFENB_REG] = msgVal; 
  	    
