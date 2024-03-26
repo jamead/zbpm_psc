@@ -182,7 +182,8 @@ void ReadReg(volatile unsigned int *fpgabase, int regaddr, char *msg) {
 
     rawreg = fpgabase[regaddr];
     memcpy(msg,&rawreg,sizeof(int));
-    //printf("Reg %d = %d\n",regaddr,rawreg);
+    //if (regaddr == PLL_LOCKED_REG) 
+    //  printf("PLL Reg %d = %d\n",regaddr,rawreg);
 }  
 
 
@@ -248,7 +249,7 @@ void ReadGenRegs(volatile unsigned int *fpgabase, char *msg) {
 
     //Slow Control Data - PSC Message ID 30
     ReadReg(fpgabase,PLL_LOCKED_REG,&msg[PLL_LOCKED_MSG30]);
- 
+	
     ReadReg(fpgabase,KX_REG,&msg[POS_KX_MSG30]);
     ReadReg(fpgabase,KY_REG,&msg[POS_KY_MSG30]);
 
@@ -321,7 +322,7 @@ void *psc_status_thread(void *arg)
     int *msgid32_bufptr;
     
     struct sockaddr_in serv_addr, cli_addr;
-    int i, n, loop=0, loc;
+    int i, n, loop=0, loc, satrigwait;
     int sa_cnt, sa_cnt_prev, trig_cnt, trig_cnt_prev;
     int update_posdata=0;
     int fd;
@@ -427,17 +428,21 @@ reconnect:
 
     sa_cnt_prev = sa_cnt = 0;
     trig_cnt_prev = trig_cnt = 0;
-    
+    satrigwait = 0;   
+
     while (1) {
         printf("In main loop...\n");
  	usleep(100);
         	
 	do {
+	   satrigwait++;
 	   sa_cnt = fpgabase[SA_TRIGNUM_REG];
-	   //printf("SA CNT: %d\n",sa_cnt);
-	   usleep(100);
+	   //printf("SA CNT: %d    %d\n",sa_cnt, satrigwait);
+	   usleep(1000);
 	}
-        while (sa_cnt_prev == sa_cnt);
+        while (sa_cnt_prev == sa_cnt); 
+	//while ((sa_cnt_prev == sa_cnt) && (satrigwait < 500));
+	satrigwait = 0;
         sa_cnt_prev = sa_cnt;
         
 	//if straight section, update SA data on trigger only
