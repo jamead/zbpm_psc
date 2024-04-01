@@ -45,13 +45,10 @@ void Host2NetworkConvWvfm(char *inbuf, char *outbuf, int len) {
 }
 
 
-void ReadTbTWvfm(volatile unsigned int *fpgabase, char *msg) {
+void ReadLiveTbTWvfm(volatile unsigned int *fpgabase, char *msg) {
 
     int i;
     int *msgptr;
-    int databuf[30000];  //1024pts * 7val * 4bytes/val
-    //int cha, chb, chc, chd, x, y, sum;
-    int wordCnt, wordsRead, samp_cnt, regVal;
     int ts_s, ts_ns;
      
     msgptr = (int *) msg;
@@ -82,15 +79,12 @@ void ReadTbTWvfm(volatile unsigned int *fpgabase, char *msg) {
 
 
 
-void ReadADCWvfm(volatile unsigned int *fpgabase, char *msg) {
+void ReadLiveADCWvfm(volatile unsigned int *fpgabase, char *msg) {
 
     int i;
     short int *msgptr;
-    int adcdatabuf[20000];
-    int adcval_cha,adcval_chb,adcval_chc,adcval_chd;
-    int wordCnt, wordsRead, samp_cnt, regVal;
     int hdr, ts_s, ts_ns;
- 
+    int regVal; 
 
     msgptr = (short int *) msg;
     printf("Reading ADC FIFO...\n");
@@ -210,7 +204,7 @@ reconnect:
     /* If connection is established then start communicating */
     printf("Waveform socket: Connected Accepted...\n");
 
-    // ADC Data waveform
+    // ADC Live Data waveform
     bzero(msgid51_buf,sizeof(msgid51_buf));
     msgid51_bufptr = (int *)msgid51_buf; 
     msgid51_buf[0] = 'P';
@@ -219,7 +213,7 @@ reconnect:
     msgid51_buf[3] = (short int) MSGID51;
     *++msgid51_bufptr = htonl(MSGID51LEN);  //body length
 	
-    // TbT Data waveform
+    // TbT Live Data waveform
     bzero(msgid52_buf,sizeof(msgid52_buf));
     msgid52_bufptr = (int *)msgid52_buf; 
     msgid52_buf[0] = 'P';
@@ -241,10 +235,10 @@ reconnect:
 	
 	prevtrignum = newtrignum; 
 
-	ReadADCWvfm(fpgalivebase,&msgid51_buf[MSGHDRLEN]);
+	ReadLiveADCWvfm(fpgalivebase,&msgid51_buf[MSGHDRLEN]);
 	//printf("%8d:  Reading ADC Waveform...\n",loop);
 
-	ReadTbTWvfm(fpgalivebase,&msgid52_buf[MSGHDRLEN]);
+	ReadLiveTbTWvfm(fpgalivebase,&msgid52_buf[MSGHDRLEN]);
 	//printf("%8d:  Reading TbT Waveform...\n",loop);
 
 
