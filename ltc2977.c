@@ -1,6 +1,6 @@
 /********************************************************************
 *  Power Manager Readbacks for ZYNQ-based RF BPM
-*  6-27-2017
+*  6-27-2018
 *  By: Anthony Caracappa
 *  This subroutine is called by an IOC for the 1 Hz Readbacks... 
 ********************************************************************/
